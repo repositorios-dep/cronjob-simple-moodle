@@ -1,0 +1,15 @@
+{
+  "name": "automatizacion-moodle",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "mysql2": "^3.15.3",
+    "puppeteer": "^24.30.0"
+  }
+}
