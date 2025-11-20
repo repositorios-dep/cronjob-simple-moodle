@@ -131,7 +131,7 @@ function transformToCSV(map = {}) {
 
 async function uploadCSV(csv = "") {
 	if (!csv) return;
-	const MIN_WAIT_TIME = 5 * 1000
+	const MIN_WAIT_TIME = 5 * 1000;
 	const browser = await puppeteer.launch({ headless: true });
 	const page = await browser.newPage();
 
@@ -189,11 +189,14 @@ async function uploadCSV(csv = "") {
 
 	await page.locator("input[type='submit']").click();
 	await setTimeout(MIN_WAIT_TIME);
-	await page.select("form[method=post].mform select[name=uutype]", "2")
-	await page.select("form[method=post].mform select[name=uustandardusernames]", "1")
-	await page.select("form[method=post].mform select[name=maildisplay]", "0")
-	await page.locator("input[type=submit]").click()
-	await browser.close()
+	await page.select("form[method=post].mform select[name=uutype]", "2");
+	await page.select(
+		"form[method=post].mform select[name=uustandardusernames]",
+		"1"
+	);
+	await page.select("form[method=post].mform select[name=maildisplay]", "0");
+	await page.locator("input[type=submit]").click();
+	await browser.close();
 }
 
 const databaseData = await fetchData(buildQuery());
