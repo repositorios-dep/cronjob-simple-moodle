@@ -131,7 +131,8 @@ function transformToCSV(map = {}) {
 
 async function uploadCSV(csv = "") {
 	if (!csv) return;
-	const browser = await puppeteer.launch({ headless: false });
+	const MIN_WAIT_TIME = 5 * 1000
+	const browser = await puppeteer.launch({ headless: true });
 	const page = await browser.newPage();
 
 	// Navigate the page to a URL.
@@ -154,11 +155,11 @@ async function uploadCSV(csv = "") {
 
 	await page.locator("button[type='submit']").click();
 
-	await setTimeout(3000);
+	await setTimeout(MIN_WAIT_TIME);
 
 	await page.goto(process.env.MOODLE_USER_UPLOAD_URL);
 
-	await setTimeout(3000);
+	await setTimeout(MIN_WAIT_TIME);
 
 	const dropzone = await page.waitForSelector(
 		"div.mdl-left.filepicker-filelist"
@@ -187,11 +188,14 @@ async function uploadCSV(csv = "") {
 	}, dataTransfer);
 
 	await page.locator("input[type='submit']").click();
-	await setTimeout(3000);
-	console.log("progreso!");
+	await setTimeout(MIN_WAIT_TIME);
+	await page.select("form[method=post].mform select[name=uutype]", "2")
+	await page.select("form[method=post].mform select[name=uustandardusernames]", "1")
+	await page.select("form[method=post].mform select[name=maildisplay]", "0")
+	await page.locator("input[type=submit]").click()
+	await browser.close()
 }
 
-const results = await fetchData(buildQuery());
-const csv = transformToCSV(mapData(results));
-console.log("csv", csv);
+const databaseData = await fetchData(buildQuery());
+const csv = transformToCSV(mapData(databaseData));
 await uploadCSV(csv);
