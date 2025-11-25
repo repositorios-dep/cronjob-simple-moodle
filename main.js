@@ -3,7 +3,6 @@ import crypto from "crypto";
 import puppeteer, { ElementHandle } from "puppeteer";
 import { setTimeout } from "node:timers/promises";
 import { DatabaseSync } from "node:sqlite";
-import { exit } from "node:process";
 
 async function startLocalDB() {
 	db.exec(`
