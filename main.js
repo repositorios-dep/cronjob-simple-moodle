@@ -2,6 +2,14 @@ import mysql from "mysql2/promise";
 import crypto from "crypto";
 import puppeteer, { ElementHandle } from "puppeteer";
 import { setTimeout } from "node:timers/promises";
+import { DatabaseSync } from "node:sqlite";
+import { exit } from "node:process";
+
+async function startLocalDB() {
+	db.exec(`
+    CREATE TABLE IF NOT EXISTS ultimo_registro (id_tramite INTEGER);
+  `);
+}
 
 const KEYS_IMPORTANTES = [
 	"rut",
@@ -10,9 +18,9 @@ const KEYS_IMPORTANTES = [
 	"email",
 	"servicio_publico",
 	"curso_de_genero",
-]
+];
 
-const NOMBRE_FORMULARIO = "Formulario de Inscripción Curso Básico de Género"
+const NOMBRE_FORMULARIO = "Formulario de Inscripción Curso Básico de Género";
 
 function buildQuery(maxTramite = Number.NEGATIVE_INFINITY) {
 	let query = `
@@ -73,15 +81,14 @@ function mapData(data = []) {
 	const map = {};
 	for (const element of data) {
 		const key = element.usuario;
-		
+
 		if (!map[key]) {
 			map[key] = {};
 			map[key][element.key] = JSON.parse(element.value);
 			continue;
 		}
-		
-		if (!KEYS_IMPORTANTES.includes(element.key)) 
-			continue
+
+		if (!KEYS_IMPORTANTES.includes(element.key)) continue;
 		if (element.key === "curso_de_genero" && !map[key]["curso_de_genero"]) {
 			map[key]["curso_de_genero"] = new Set();
 			const arr = JSON.parse(element.value);
@@ -214,6 +221,28 @@ async function uploadCSV(csv = "") {
 	await browser.close();
 }
 
-const databaseData = await fetchData(buildQuery());
+const db = new DatabaseSync("registro_ultimo_tramite_procesado.sqlite");
+startLocalDB(db);
+const KNOWN_MAX_TRAMITE = db.prepare(`SELECT id_tramite FROM ultimo_registro`).get();
+
+const databaseData = await fetchData(buildQuery(KNOWN_MAX_TRAMITE?.id_tramite));
 const csv = transformToCSV(mapData(databaseData));
+if (csv.split("\n").length === 1) {
+	throw new Error("El CSV no contiene datos");
+}
+
+let maxTramite = Number.NEGATIVE_INFINITY;
+for (const item of databaseData) {
+	if (item.tramite > maxTramite) maxTramite = item.tramite;
+}
+
 await uploadCSV(csv);
+
+if (!KNOWN_MAX_TRAMITE)
+	db.prepare("INSERT INTO ultimo_registro (id_tramite) VALUES(?)").run(
+		maxTramite
+	);
+else
+	db.prepare(
+		"UPDATE ultimo_registro SET id_tramite = ? where id_tramite = ?"
+	).run(maxTramite, KNOWN_MAX_TRAMITE.id_tramite);
