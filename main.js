@@ -3,6 +3,17 @@ import crypto from "crypto";
 import puppeteer, { ElementHandle } from "puppeteer";
 import { setTimeout } from "node:timers/promises";
 
+const KEYS_IMPORTANTES = [
+	"rut",
+	"nombre",
+	"apellido",
+	"email",
+	"servicio_publico",
+	"curso_de_genero",
+]
+
+const NOMBRE_FORMULARIO = "Formulario de Inscripción Curso Básico de Género"
+
 function buildQuery(maxTramite = Number.NEGATIVE_INFINITY) {
 	let query = `
 select
@@ -25,7 +36,7 @@ inner join
 on 
     dato_seguimiento.etapa_id = etapa.id
 where 
-    formulario.nombre = 'Formulario de Inscripción Cursos de Género' and 
+    formulario.nombre = '${NOMBRE_FORMULARIO}' and 
     tramite.pendiente = 0  ${
 		maxTramite !== Number.NEGATIVE_INFINITY && !isNaN(maxTramite)
 			? `and\n    tramite.id > ${maxTramite}`
@@ -62,18 +73,22 @@ function mapData(data = []) {
 	const map = {};
 	for (const element of data) {
 		const key = element.usuario;
+		
 		if (!map[key]) {
 			map[key] = {};
 			map[key][element.key] = JSON.parse(element.value);
 			continue;
 		}
-
+		
+		if (!KEYS_IMPORTANTES.includes(element.key)) 
+			continue
 		if (element.key === "curso_de_genero" && !map[key]["curso_de_genero"]) {
 			map[key]["curso_de_genero"] = new Set();
 			const arr = JSON.parse(element.value);
 			for (const el of arr) {
 				map[key]["curso_de_genero"].add(el);
 			}
+			//aqui ignorar campos nuevos
 
 			continue;
 		}
@@ -132,7 +147,7 @@ function transformToCSV(map = {}) {
 async function uploadCSV(csv = "") {
 	if (!csv) return;
 	const MIN_WAIT_TIME = 5 * 1000;
-	const browser = await puppeteer.launch({ headless: true });
+	const browser = await puppeteer.launch({ headless: false });
 	const page = await browser.newPage();
 
 	// Navigate the page to a URL.
